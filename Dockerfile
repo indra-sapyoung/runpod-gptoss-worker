@@ -1,7 +1,7 @@
 # Custom RunPod Serverless Worker for GPT-OSS-20B
-# Uses official vLLM gptoss image as base
+# Uses latest vLLM image (v0.15.1+ has GPT-OSS support built-in)
 
-FROM vllm/vllm-openai:gptoss
+FROM vllm/vllm-openai:latest
 
 # Install RunPod and other dependencies
 RUN pip install --no-cache-dir \
