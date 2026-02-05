@@ -5,7 +5,7 @@ FROM vllm/vllm-openai:gptoss
 
 # Install RunPod and other dependencies
 RUN pip install --no-cache-dir \
-    runpod>=1.8,<2.0 \
+    "runpod>=1.8,<2.0" \
     pydantic \
     pydantic-settings
 
