@@ -23,5 +23,8 @@ ENV MODEL_NAME=$MODEL_NAME \
 # Copy handler code
 COPY src /src
 
+# Override the base image's entrypoint
+ENTRYPOINT []
+
 # Start the handler
 CMD ["python3", "/src/handler.py"]
