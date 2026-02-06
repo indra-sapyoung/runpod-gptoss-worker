@@ -21,7 +21,8 @@ ENV MODEL_NAME=$MODEL_NAME \
     PYTHONPATH="/" \
     RAY_metrics_report_interval_ms=0 \
     RAY_DEDUP_LOGS=0 \
-    RAY_DISABLE_DOCKER_CPU_WARNING=1
+    RAY_DISABLE_DOCKER_CPU_WARNING=1 \
+    ENFORCE_EAGER=true
 
 # Copy handler code
 COPY src /src
