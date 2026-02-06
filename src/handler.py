@@ -23,10 +23,12 @@ async def handler(job):
             yield batch
     except Exception as e:
         error_msg = str(e)
+        error_type = type(e).__name__
         # If engine is dead, exit so RunPod replaces this worker
-        if "EngineDeadError" in error_msg or "EngineCoreError" in error_msg:
-            logging.error(f"❌ Engine died: {e}. Exiting worker.")
-            sys.exit(1)
+        if any(keyword in error_msg for keyword in ["EngineCore encountered", "Engine core", "engine is dead"]) \
+           or any(keyword in error_type for keyword in ["EngineDeadError", "EngineCoreError"]):
+            logging.error(f"❌ Engine died ({error_type}): {e}. Exiting worker.")
+            os._exit(1)  # Force exit (sys.exit may be caught by RunPod framework)
         raise
 
 runpod.serverless.start(
