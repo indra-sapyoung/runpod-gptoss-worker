@@ -216,7 +216,8 @@ class OpenAIvLLMEngine(vLLMEngine):
         return adapters
 
     async def _initialize_engines(self):
-        self.model_config = await self.llm.get_model_config()
+        # vLLM 0.15.x changed get_model_config() to a property
+        self.model_config = self.llm.model_config
         self.base_model_paths = [
             BaseModelPath(name=self.engine_args.model, model_path=self.engine_args.model)
         ]
