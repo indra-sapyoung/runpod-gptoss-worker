@@ -9,25 +9,24 @@ import time
 
 from vllm import AsyncLLMEngine
 from vllm.entrypoints.logger import RequestLogger
-from vllm.entrypoints.openai.serving_chat import OpenAIServingChat
-from vllm.entrypoints.openai.serving_completion import OpenAIServingCompletion
-from vllm.entrypoints.openai.serving_models import BaseModelPath, LoRAModulePath, OpenAIServingModels
 
-# vLLM 0.15.x restructured protocol imports - handle both old and new paths
+# vLLM 0.15.x completely restructured the openai entrypoints module
+# All imports are now in subdirectories - verified from vLLM GitHub main branch
 try:
     # vLLM 0.15.x+ new structure
+    from vllm.entrypoints.openai.chat_completion.serving import OpenAIServingChat
+    from vllm.entrypoints.openai.completion.serving import OpenAIServingCompletion
+    from vllm.entrypoints.openai.models.serving import OpenAIServingModels
+    from vllm.entrypoints.openai.models.protocol import BaseModelPath, LoRAModulePath
     from vllm.entrypoints.openai.chat_completion.protocol import ChatCompletionRequest
     from vllm.entrypoints.openai.completion.protocol import CompletionRequest
-    from vllm.entrypoints.openai.protocol import ErrorResponse
+    from vllm.entrypoints.openai.engine.protocol import ErrorResponse
 except ImportError:
-    try:
-        # Alternative 0.15.x paths
-        from vllm.entrypoints.openai.protocol.chat_completion import ChatCompletionRequest
-        from vllm.entrypoints.openai.protocol.completion import CompletionRequest
-        from vllm.entrypoints.openai.protocol import ErrorResponse
-    except ImportError:
-        # vLLM < 0.15.x old structure
-        from vllm.entrypoints.openai.protocol import ChatCompletionRequest, CompletionRequest, ErrorResponse
+    # vLLM < 0.15.x old structure
+    from vllm.entrypoints.openai.serving_chat import OpenAIServingChat
+    from vllm.entrypoints.openai.serving_completion import OpenAIServingCompletion
+    from vllm.entrypoints.openai.serving_models import BaseModelPath, LoRAModulePath, OpenAIServingModels
+    from vllm.entrypoints.openai.protocol import ChatCompletionRequest, CompletionRequest, ErrorResponse
 
 
 from utils import DummyRequest, JobInput, BatchSize, create_error_response
