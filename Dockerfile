@@ -22,7 +22,8 @@ ENV MODEL_NAME=$MODEL_NAME \
     RAY_metrics_report_interval_ms=0 \
     RAY_DEDUP_LOGS=0 \
     RAY_DISABLE_DOCKER_CPU_WARNING=1 \
-    ENFORCE_EAGER=true
+    ENFORCE_EAGER=true \
+    TOKENIZERS_PARALLELISM=false
 
 # Copy handler code
 COPY src /src
