@@ -23,7 +23,11 @@ ENV MODEL_NAME=$MODEL_NAME \
     RAY_DEDUP_LOGS=0 \
     RAY_DISABLE_DOCKER_CPU_WARNING=1 \
     ENFORCE_EAGER=true \
-    TOKENIZERS_PARALLELISM=false
+    TOKENIZERS_PARALLELISM=false \
+    OMP_NUM_THREADS=4 \
+    MKL_NUM_THREADS=4 \
+    OPENBLAS_NUM_THREADS=4 \
+    RAY_NUM_CPUS=1
 
 # Copy handler code
 COPY src /src
@@ -31,5 +35,5 @@ COPY src /src
 # Override the base image's entrypoint
 ENTRYPOINT []
 
-# Start the handler
-CMD ["python3", "/src/handler.py"]
+# Start the handler (raise thread limit to prevent thread exhaustion)
+CMD ["bash", "-c", "ulimit -u 65535 2>/dev/null; exec python3 /src/handler.py"]
