@@ -11,8 +11,23 @@ from vllm import AsyncLLMEngine
 from vllm.entrypoints.logger import RequestLogger
 from vllm.entrypoints.openai.serving_chat import OpenAIServingChat
 from vllm.entrypoints.openai.serving_completion import OpenAIServingCompletion
-from vllm.entrypoints.openai.protocol import ChatCompletionRequest, CompletionRequest, ErrorResponse
 from vllm.entrypoints.openai.serving_models import BaseModelPath, LoRAModulePath, OpenAIServingModels
+
+# vLLM 0.15.x restructured protocol imports - handle both old and new paths
+try:
+    # vLLM 0.15.x+ new structure
+    from vllm.entrypoints.openai.chat_completion.protocol import ChatCompletionRequest
+    from vllm.entrypoints.openai.completion.protocol import CompletionRequest
+    from vllm.entrypoints.openai.protocol import ErrorResponse
+except ImportError:
+    try:
+        # Alternative 0.15.x paths
+        from vllm.entrypoints.openai.protocol.chat_completion import ChatCompletionRequest
+        from vllm.entrypoints.openai.protocol.completion import CompletionRequest
+        from vllm.entrypoints.openai.protocol import ErrorResponse
+    except ImportError:
+        # vLLM < 0.15.x old structure
+        from vllm.entrypoints.openai.protocol import ChatCompletionRequest, CompletionRequest, ErrorResponse
 
 
 from utils import DummyRequest, JobInput, BatchSize, create_error_response
