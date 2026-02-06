@@ -1,7 +1,7 @@
 # Custom RunPod Serverless Worker for GPT-OSS-20B
-# Uses latest vLLM image (v0.15.1+ has GPT-OSS support built-in)
+# Pin to v0.15.1 to avoid breaking changes from future vLLM releases
 
-FROM vllm/vllm-openai:latest
+FROM vllm/vllm-openai:v0.15.1
 
 # Install RunPod and other dependencies
 RUN pip install --no-cache-dir \
@@ -27,7 +27,10 @@ ENV MODEL_NAME=$MODEL_NAME \
     OMP_NUM_THREADS=4 \
     MKL_NUM_THREADS=4 \
     OPENBLAS_NUM_THREADS=4 \
-    RAY_NUM_CPUS=1
+    RAY_NUM_CPUS=1 \
+    VLLM_USE_RAY_COMPILED_DAG=0 \
+    VLLM_USE_RAY_COMPILED_DAG_NCCL_CHANNEL=0 \
+    TENSOR_PARALLEL_SIZE=1
 
 # Copy handler code
 COPY src /src
