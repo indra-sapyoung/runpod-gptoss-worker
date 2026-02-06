@@ -18,7 +18,10 @@ ENV MODEL_NAME=$MODEL_NAME \
     HF_DATASETS_CACHE="${BASE_PATH}/huggingface-cache/datasets" \
     HUGGINGFACE_HUB_CACHE="${BASE_PATH}/huggingface-cache/hub" \
     HF_HOME="${BASE_PATH}/huggingface-cache/hub" \
-    PYTHONPATH="/"
+    PYTHONPATH="/" \
+    RAY_metrics_report_interval_ms=0 \
+    RAY_DEDUP_LOGS=0 \
+    RAY_DISABLE_DOCKER_CPU_WARNING=1
 
 # Copy handler code
 COPY src /src
