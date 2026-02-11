@@ -1,7 +1,7 @@
 # Custom RunPod Serverless Worker for GPT-OSS-20B
-# Pin to v0.15.1 to avoid breaking changes from future vLLM releases
+# v0.15.1-cu130: CUDA 13.0 for Blackwell (RTX 5090) + backward compat (A40, A100, H100)
 
-FROM vllm/vllm-openai:v0.15.1
+FROM vllm/vllm-openai:v0.15.1-cu130
 
 # Install RunPod and other dependencies
 RUN pip install --no-cache-dir \

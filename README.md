@@ -101,8 +101,17 @@ curl -X POST "https://api.runpod.ai/v2/YOUR_ENDPOINT_ID/openai/v1/chat/completio
   }'
 ```
 
+## Image Tags
+
+| Tag | Base | GPU Support |
+|-----|------|------------|
+| `latest` / `v2-cu130` | vllm v0.15.1 + CUDA 13.0 | A40, A100, H100, **RTX 5090** |
+| `v1-cu124` | vllm v0.15.1 + CUDA 12.4 | A40, A100, H100 (no 5090) |
+
+To rollback: change RunPod container image to `YOUR_USERNAME/worker-vllm-gptoss:v1-cu124`
+
 ## Troubleshooting
 
 - **Tokenizer error**: Make sure `TOKENIZER_MODE=slow` is set
-- **FlashAttention error**: Use H100 or RTX 5090 GPU only
+- **FlashAttention error on RTX 5090**: Make sure you're using the `:latest` or `:v2-cu130` tag (CUDA 13.0)
 - **Out of memory**: Reduce `MAX_MODEL_LEN` or `GPU_MEMORY_UTILIZATION`
