@@ -1,13 +1,9 @@
 # Custom RunPod Serverless Worker for GPT-OSS-20B
-# Base: vllm v0.15.1 (CUDA 12.9 default)
-# Override NVIDIA_REQUIRE_CUDA to support RunPod 5090 hosts (driver supports up to CUDA 12.8)
-# CUDA 12.8+ supports Blackwell (sm_120), so vLLM kernels still work
+# Base: vllm v0.15.1 (CUDA 12.9)
+# Requires RunPod machines with CUDA 12.9+ drivers
+# Set CUDA version filter in RunPod dashboard to ensure compatible machines
 
 FROM vllm/vllm-openai:v0.15.1
-
-# Allow running on hosts with CUDA 12.4+ drivers (RunPod 5090 has ~12.8)
-ENV NVIDIA_REQUIRE_CUDA "cuda>=12.4"
-ENV NVIDIA_DISABLE_REQUIRE "true"
 
 # Install RunPod and other dependencies
 RUN pip install --no-cache-dir \
