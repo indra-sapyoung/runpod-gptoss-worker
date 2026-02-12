@@ -6,28 +6,7 @@ on:
   workflow_dispatch:  # Allows manual trigger
 
 jobs:
-  backup:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Backup current :latest as :v1-cu124
-        run: |
-          IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/worker-vllm-gptoss"
-          if docker pull "${IMAGE}:latest" 2>/dev/null; then
-            docker tag "${IMAGE}:latest" "${IMAGE}:v1-cu124"
-            docker push "${IMAGE}:v1-cu124"
-            echo "✅ Backed up ${IMAGE}:v1-cu124"
-          else
-            echo "⚠️ No existing :latest to backup"
-          fi
-
   build:
-    needs: backup
     runs-on: ubuntu-latest
 
     steps:
@@ -59,6 +38,6 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/worker-vllm-gptoss:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/worker-vllm-gptoss:v2-cu130
+            ${{ secrets.DOCKERHUB_USERNAME }}/worker-vllm-gptoss:v3-universal
           cache-from: type=gha
           cache-to: type=gha,mode=max

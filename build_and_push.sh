@@ -16,22 +16,10 @@ IMAGE_NAME="worker-vllm-gptoss"
 FULL_IMAGE="${DOCKER_USERNAME}/${IMAGE_NAME}"
 
 echo "=========================================="
-echo "Step 1: Backup current :latest as :v1-cu124"
+echo "Building new image (vLLM v0.15.1, universal GPU support)"
 echo "=========================================="
 
-# Pull current latest and retag as backup
-if docker pull "${FULL_IMAGE}:latest" 2>/dev/null; then
-    docker tag "${FULL_IMAGE}:latest" "${FULL_IMAGE}:v1-cu124"
-    echo "✅ Tagged backup: ${FULL_IMAGE}:v1-cu124"
-else
-    echo "⚠️ No existing :latest to backup (first build?)"
-fi
-
-echo "=========================================="
-echo "Step 2: Building new image (cu130 for RTX 5090)"
-echo "=========================================="
-
-docker build -t "${FULL_IMAGE}:latest" -t "${FULL_IMAGE}:v2-cu130" .
+docker build -t "${FULL_IMAGE}:latest" -t "${FULL_IMAGE}:v3-universal" .
 
 echo "=========================================="
 echo "Build complete!"
@@ -44,24 +32,21 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
     echo "Logging in to Docker Hub..."
     docker login
 
-    echo "Pushing backup tag..."
-    docker push "${FULL_IMAGE}:v1-cu124" 2>/dev/null || echo "(backup push skipped)"
-
-    echo "Pushing new tags..."
-    docker push "${FULL_IMAGE}:v2-cu130"
+    echo "Pushing tags..."
+    docker push "${FULL_IMAGE}:v3-universal"
     docker push "${FULL_IMAGE}:latest"
 
     echo "=========================================="
     echo "Done! Images pushed:"
-    echo "  ${FULL_IMAGE}:latest    ← new (cu130, RTX 5090 ready)"
-    echo "  ${FULL_IMAGE}:v2-cu130  ← same as latest"
-    echo "  ${FULL_IMAGE}:v1-cu124  ← backup (rollback)"
+    echo "  ${FULL_IMAGE}:latest        ← current (all GPUs)"
+    echo "  ${FULL_IMAGE}:v3-universal  ← same as latest"
     echo ""
-    echo "To rollback: change RunPod image to ${FULL_IMAGE}:v1-cu124"
+    echo "Old images still available for rollback:"
+    echo "  ${FULL_IMAGE}:v1-cu124      ← vLLM v0.15.1 (no CUDA override)"
+    echo "  ${FULL_IMAGE}:v2-cu130      ← vLLM v0.15.1-cu130"
     echo "=========================================="
 else
     echo "Skipped push. To push later, run:"
-    echo "  docker push ${FULL_IMAGE}:v1-cu124"
-    echo "  docker push ${FULL_IMAGE}:v2-cu130"
+    echo "  docker push ${FULL_IMAGE}:v3-universal"
     echo "  docker push ${FULL_IMAGE}:latest"
 fi
