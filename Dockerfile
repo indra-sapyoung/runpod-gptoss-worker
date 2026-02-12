@@ -15,7 +15,6 @@ ENV VLLM_TARGET_DEVICE=cuda
 # Must free enough for vLLM build + triton clone (~500MB) + build artifacts
 RUN rm -rf /opt/nvidia/nsight-systems* /opt/nvidia/nsight-compute* \
     /opt/nvidia/entitlement* \
-    /opt/hpcx/ \
     /usr/local/cuda/samples /usr/local/cuda/extras/CUPTI/samples \
     /usr/local/cuda/compute-sanitizer \
     /usr/local/lib/python3.12/dist-packages/torch/test/ \
