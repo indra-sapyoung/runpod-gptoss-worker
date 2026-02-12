@@ -8,6 +8,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 180  # vLLM source build takes 30-60 min
 
     steps:
       - name: Free up disk space
@@ -16,7 +17,11 @@ jobs:
           sudo rm -rf /usr/local/lib/android
           sudo rm -rf /opt/ghc
           sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo rm -rf /opt/hostedtoolcache/go
+          sudo rm -rf /opt/hostedtoolcache/Ruby
+          sudo rm -rf /usr/local/share/boost
           sudo docker image prune --all --force
+          sudo apt-get clean
           df -h
 
       - name: Checkout code
@@ -38,6 +43,6 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/worker-vllm-gptoss:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/worker-vllm-gptoss:v3-universal
+            ${{ secrets.DOCKERHUB_USERNAME }}/worker-vllm-gptoss:v4-cu128
           cache-from: type=gha
           cache-to: type=gha,mode=max

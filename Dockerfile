@@ -1,9 +1,23 @@
 # Custom RunPod Serverless Worker for GPT-OSS-20B
-# Base: vllm v0.15.1 (CUDA 12.9)
-# Requires RunPod machines with CUDA 12.9+ drivers
-# Set CUDA version filter in RunPod dashboard to ensure compatible machines
+# Base: NVIDIA PyTorch container with CUDA 12.8.1
+# Builds vLLM v0.15.1 from source for CUDA 12.8 compatibility
+# Works on ALL RunPod GPUs: A40, A100, RTX 5090, L40, L40S (driver 570.x+)
 
-FROM vllm/vllm-openai:v0.15.1
+FROM nvcr.io/nvidia/pytorch:25.02-py3
+
+# Build settings for vLLM source compilation
+# Include Ampere (8.0, 8.6, 8.9), Hopper (9.0), and Blackwell (12.0)
+ENV TORCH_CUDA_ARCH_LIST="8.0;8.6;8.9;9.0;12.0"
+ENV MAX_JOBS=2
+ENV VLLM_TARGET_DEVICE=cuda
+
+# Install vLLM v0.15.1 from source (compiled against CUDA 12.8)
+RUN pip install --no-cache-dir setuptools_scm && \
+    git clone --depth 1 --branch v0.15.1 https://github.com/vllm-project/vllm.git /tmp/vllm && \
+    cd /tmp/vllm && \
+    pip install --no-cache-dir -r requirements/build.txt && \
+    pip install --no-cache-dir . && \
+    cd / && rm -rf /tmp/vllm
 
 # Install RunPod and other dependencies
 RUN pip install --no-cache-dir \
