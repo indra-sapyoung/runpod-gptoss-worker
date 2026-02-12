@@ -6,18 +6,25 @@
 FROM nvcr.io/nvidia/pytorch:25.02-py3
 
 # Build settings for vLLM source compilation
-# Include Ampere (8.0, 8.6, 8.9), Hopper (9.0), and Blackwell (12.0)
-ENV TORCH_CUDA_ARCH_LIST="8.0;8.6;8.9;9.0;10.0"
+# Include Ampere (8.0, 8.6, 8.9), Hopper (9.0), and Blackwell (12.0 = sm_120 = RTX 5090)
+ENV TORCH_CUDA_ARCH_LIST="8.0;8.6;8.9;9.0;12.0"
 ENV MAX_JOBS=2
 ENV VLLM_TARGET_DEVICE=cuda
 
 # Free up space: base image is ~15GB, GitHub Actions has limited disk
+# Must free enough for vLLM build + triton clone (~500MB) + build artifacts
 RUN rm -rf /opt/nvidia/nsight-systems* /opt/nvidia/nsight-compute* \
     /opt/nvidia/entitlement* \
+    /opt/hpcx/ \
     /usr/local/cuda/samples /usr/local/cuda/extras/CUPTI/samples \
+    /usr/local/cuda/compute-sanitizer \
+    /usr/local/lib/python3.12/dist-packages/torch/test/ \
+    /usr/local/lib/python3.12/dist-packages/tensorrt* \
     /usr/share/doc /usr/share/man /var/cache/apt/* \
     && pip cache purge 2>/dev/null || true \
-    && apt-get clean 2>/dev/null || true
+    && apt-get clean 2>/dev/null || true \
+    && find /usr/local/lib/python3.12/dist-packages/ -name '*.pyc' -delete 2>/dev/null || true \
+    && find /usr/local/lib/python3.12/dist-packages/ -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
 
 # Upgrade setuptools (base image's version doesn't support PEP 639 license format)
 # and install minimal build tools (NOT requirements/build.txt which
@@ -26,10 +33,13 @@ RUN pip install --no-cache-dir "setuptools>=75.0" "packaging>=24.2" setuptools_s
 
 # Build vLLM v0.15.1 from source using existing PyTorch + CUDA 12.8
 # --no-build-isolation: use base image's torch instead of downloading a new one
-RUN git clone --depth 1 --branch v0.15.1 https://github.com/vllm-project/vllm.git /tmp/vllm && \
+# Pre-clone triton with --depth 1 to avoid disk space exhaustion (full clone is 460MB+)
+RUN git clone --depth 1 https://github.com/triton-lang/triton.git /tmp/triton && \
+    git clone --depth 1 --branch v0.15.1 https://github.com/vllm-project/vllm.git /tmp/vllm && \
     cd /tmp/vllm && \
-    pip install --no-cache-dir --no-build-isolation . && \
-    cd / && rm -rf /tmp/vllm
+    pip install --no-cache-dir --no-build-isolation \
+        -Ccmake.define.FETCHCONTENT_SOURCE_DIR_TRITON_KERNELS=/tmp/triton . && \
+    cd / && rm -rf /tmp/vllm /tmp/triton
 
 # Install RunPod and other dependencies
 RUN pip install --no-cache-dir \
