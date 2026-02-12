@@ -22,7 +22,7 @@ RUN rm -rf /opt/nvidia/nsight-systems* /opt/nvidia/nsight-compute* \
 # Upgrade setuptools (base image's version doesn't support PEP 639 license format)
 # and install minimal build tools (NOT requirements/build.txt which
 # re-downloads torch + all CUDA libs already in the base image)
-RUN pip install --no-cache-dir "setuptools>=75.0" setuptools_scm cmake ninja packaging wheel
+RUN pip install --no-cache-dir "setuptools>=75.0" "packaging>=24.2" setuptools_scm cmake ninja wheel
 
 # Build vLLM v0.15.1 from source using existing PyTorch + CUDA 12.8
 # --no-build-isolation: use base image's torch instead of downloading a new one
