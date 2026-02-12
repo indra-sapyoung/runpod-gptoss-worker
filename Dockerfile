@@ -7,7 +7,7 @@ FROM nvcr.io/nvidia/pytorch:25.02-py3
 
 # Build settings for vLLM source compilation
 # Include Ampere (8.0, 8.6, 8.9), Hopper (9.0), and Blackwell (12.0)
-ENV TORCH_CUDA_ARCH_LIST="8.0;8.6;8.9;9.0;12.0"
+ENV TORCH_CUDA_ARCH_LIST="8.0;8.6;8.9;9.0+PTX"
 ENV MAX_JOBS=2
 ENV VLLM_TARGET_DEVICE=cuda
 
