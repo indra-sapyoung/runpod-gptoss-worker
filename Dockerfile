@@ -11,12 +11,23 @@ ENV TORCH_CUDA_ARCH_LIST="8.0;8.6;8.9;9.0;12.0"
 ENV MAX_JOBS=2
 ENV VLLM_TARGET_DEVICE=cuda
 
-# Install vLLM v0.15.1 from source (compiled against CUDA 12.8)
-RUN pip install --no-cache-dir setuptools_scm && \
-    git clone --depth 1 --branch v0.15.1 https://github.com/vllm-project/vllm.git /tmp/vllm && \
+# Free up space: base image is ~15GB, GitHub Actions has limited disk
+RUN rm -rf /opt/nvidia/nsight-systems* /opt/nvidia/nsight-compute* \
+    /opt/nvidia/entitlement* \
+    /usr/local/cuda/samples /usr/local/cuda/extras/CUPTI/samples \
+    /usr/share/doc /usr/share/man /var/cache/apt/* \
+    && pip cache purge 2>/dev/null || true \
+    && apt-get clean 2>/dev/null || true
+
+# Install minimal build tools only (NOT requirements/build.txt which
+# re-downloads torch + all CUDA libs that are already in the base image)
+RUN pip install --no-cache-dir setuptools_scm cmake ninja packaging wheel
+
+# Build vLLM v0.15.1 from source using existing PyTorch + CUDA 12.8
+# --no-build-isolation: use base image's torch instead of downloading a new one
+RUN git clone --depth 1 --branch v0.15.1 https://github.com/vllm-project/vllm.git /tmp/vllm && \
     cd /tmp/vllm && \
-    pip install --no-cache-dir -r requirements/build.txt && \
-    pip install --no-cache-dir . && \
+    pip install --no-cache-dir --no-build-isolation . && \
     cd / && rm -rf /tmp/vllm
 
 # Install RunPod and other dependencies
