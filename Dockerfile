@@ -33,11 +33,13 @@ RUN pip install --no-cache-dir "setuptools>=75.0" "packaging>=24.2" setuptools_s
 # Build vLLM v0.15.1 from source using existing PyTorch + CUDA 12.8
 # --no-build-isolation: use base image's torch instead of downloading a new one
 # Pre-clone triton with --depth 1 to avoid disk space exhaustion (full clone is 460MB+)
+# Then inject cmake variable via sed (pip -C flag doesn't work with setuptools)
 RUN git clone --depth 1 https://github.com/triton-lang/triton.git /tmp/triton && \
     git clone --depth 1 --branch v0.15.1 https://github.com/vllm-project/vllm.git /tmp/vllm && \
     cd /tmp/vllm && \
-    pip install --no-cache-dir --no-build-isolation \
-        -Ccmake.define.FETCHCONTENT_SOURCE_DIR_TRITON_KERNELS=/tmp/triton . && \
+    sed -i '1i set(FETCHCONTENT_SOURCE_DIR_TRITON_KERNELS "/tmp/triton" CACHE PATH "" FORCE)' \
+        cmake/external_projects/triton_kernels.cmake && \
+    pip install --no-cache-dir --no-build-isolation . && \
     cd / && rm -rf /tmp/vllm /tmp/triton
 
 # Install RunPod and other dependencies
