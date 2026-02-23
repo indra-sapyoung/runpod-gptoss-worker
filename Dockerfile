@@ -1,42 +1,22 @@
 # Custom RunPod Serverless Worker for GPT-OSS-20B
-# Build from source for CUDA 12.8 + RTX 5090 (sm_120)
-# Build locally: docker build -t worker-vllm-gptoss .
+# Pre-built vLLM wheel — no source compilation, builds in ~5 minutes
+# Works on RunPod GPUs: A40, RTX 5090 (via PTX JIT), L40S, etc.
 
-FROM nvidia/cuda:12.8.1-devel-ubuntu24.04
+FROM nvidia/cuda:12.8.1-runtime-ubuntu24.04
 
 # Prevent interactive prompts during apt install
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install Python 3.12 (ships with Ubuntu 24.04) + build essentials
+# Install Python 3.12 (ships with Ubuntu 24.04)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 python3-dev python3-pip python3-venv \
-    git curl && \
+    python3 python3-pip python3-venv \
+    curl && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Build settings for vLLM source compilation
-# A40 (sm_86) + RTX 5090 (sm_120) only
-ENV TORCH_CUDA_ARCH_LIST="8.6;12.0"
-ENV MAX_JOBS=8
-ENV VLLM_TARGET_DEVICE=cuda
-
-# Install PyTorch nightly cu128 (need 2.7+ for Float8_e8m0fnu / MXFP4 support)
+# Install vLLM v0.15.1 with pre-built cu128 wheel (no compilation!)
+# RTX 5090 (sm_120) works via PTX JIT — same as local pip install
 RUN pip install --no-cache-dir --break-system-packages \
-    --pre torch --index-url https://download.pytorch.org/whl/nightly/cu128
-
-# Install build tools
-RUN pip install --no-cache-dir --break-system-packages \
-    "setuptools>=75.0,<82" "packaging==24.2" setuptools_scm cmake ninja wheel
-
-# Build vLLM v0.15.1 from source
-# Pre-clone triton with --depth 1 to save disk (full clone is 460MB+)
-# Inject cmake variable via sed (pip -C flag doesn't work with setuptools)
-RUN git clone --depth 1 https://github.com/triton-lang/triton.git /tmp/triton && \
-    git clone --depth 1 --branch v0.15.1 https://github.com/vllm-project/vllm.git /tmp/vllm && \
-    cd /tmp/vllm && \
-    sed -i '1i set(FETCHCONTENT_SOURCE_DIR_TRITON_KERNELS "/tmp/triton" CACHE PATH "" FORCE)' \
-        cmake/external_projects/triton_kernels.cmake && \
-    pip install --no-cache-dir --break-system-packages --no-build-isolation . && \
-    cd / && rm -rf /tmp/vllm /tmp/triton
+    "vllm==0.15.1" --extra-index-url https://download.pytorch.org/whl/cu128
 
 # Install RunPod and other dependencies
 RUN pip install --no-cache-dir --break-system-packages \
