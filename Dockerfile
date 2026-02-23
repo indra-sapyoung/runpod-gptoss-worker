@@ -30,7 +30,9 @@ RUN rm -rf /opt/nvidia/nsight-systems* /opt/nvidia/nsight-compute* \
 # vLLM v0.15.1 requires at::ScalarType::Float8_e8m0fnu (added in PyTorch 2.7+)
 # --force-reinstall: NGC's torch 2.6.0a0 satisfies pip's check, so without --force it's a no-op
 # --no-deps: keep NGC's existing CUDA libs (nvidia-cublas, nccl, etc.) — saves ~4GB disk
-RUN pip install --no-cache-dir --force-reinstall --no-deps --pre torch --index-url https://download.pytorch.org/whl/nightly/cu128
+# nvidia-nvshmem-cu12: new dep in torch 2.12 not in NGC base (libnvshmem_host.so.3)
+RUN pip install --no-cache-dir --force-reinstall --no-deps --pre torch --index-url https://download.pytorch.org/whl/nightly/cu128 && \
+    pip install --no-cache-dir nvidia-nvshmem-cu12
 
 # Upgrade setuptools (base image's version doesn't support PEP 639 license format)
 # and install minimal build tools (NOT requirements/build.txt which
