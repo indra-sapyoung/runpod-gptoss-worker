@@ -25,9 +25,10 @@ RUN rm -rf /opt/nvidia/nsight-systems* /opt/nvidia/nsight-compute* \
     && find /usr/local/lib/python3.12/dist-packages/ -name '*.pyc' -delete 2>/dev/null || true \
     && find /usr/local/lib/python3.12/dist-packages/ -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
 
-# Upgrade PyTorch to latest cu128 stable (base image's 2.6 lacks Blackwell FP8 types)
+# Upgrade PyTorch to nightly cu128 (base image's 2.6 lacks Blackwell FP8 types)
 # vLLM v0.15.1 requires at::ScalarType::Float8_e8m0fnu (added in PyTorch 2.7+)
-RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cu128
+# Stable cu128 index only has 2.6 — nightly has 2.9+ with Blackwell support
+RUN pip install --no-cache-dir --pre torch --index-url https://download.pytorch.org/whl/nightly/cu128
 
 # Upgrade setuptools (base image's version doesn't support PEP 639 license format)
 # and install minimal build tools (NOT requirements/build.txt which
