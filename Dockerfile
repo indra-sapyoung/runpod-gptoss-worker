@@ -2,17 +2,15 @@
 # Clean build: minimal CUDA base + PyTorch nightly + vLLM from source
 # No NGC bloat — just what we need for CUDA 12.8 + RTX 5090 (sm_120)
 
-FROM nvidia/cuda:12.8.1-devel-ubuntu22.04
+FROM nvidia/cuda:12.8.1-devel-ubuntu24.04
 
 # Prevent interactive prompts during apt install
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install Python 3.12 + build essentials
+# Install Python 3.12 (ships with Ubuntu 24.04) + build essentials
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3.12 python3.12-dev python3.12-venv python3-pip \
+    python3 python3-dev python3-pip python3-venv \
     git curl && \
-    ln -sf /usr/bin/python3.12 /usr/bin/python3 && \
-    ln -sf /usr/bin/python3.12 /usr/bin/python && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Build settings for vLLM source compilation
