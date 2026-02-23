@@ -1,63 +1,48 @@
 # Custom RunPod Serverless Worker for GPT-OSS-20B
-# Base: NVIDIA PyTorch container with CUDA 12.8.1
-# Builds vLLM v0.15.1 from source for CUDA 12.8 compatibility
-# Works on ALL RunPod GPUs: A40, A100, RTX 5090, L40, L40S (driver 570.x+)
+# Clean build: minimal CUDA base + PyTorch nightly + vLLM from source
+# No NGC bloat — just what we need for CUDA 12.8 + RTX 5090 (sm_120)
 
-FROM nvcr.io/nvidia/pytorch:25.02-py3
+FROM nvidia/cuda:12.8.1-devel-ubuntu22.04
+
+# Prevent interactive prompts during apt install
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install Python 3.12 + build essentials
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3.12 python3.12-dev python3.12-venv python3-pip \
+    git curl && \
+    ln -sf /usr/bin/python3.12 /usr/bin/python3 && \
+    ln -sf /usr/bin/python3.12 /usr/bin/python && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Build settings for vLLM source compilation
 # A40 (sm_86) + RTX 5090 (sm_120) only — add more archs if deploying on other GPUs
-# Each arch adds ~10 min compile time, so keep this minimal
 ENV TORCH_CUDA_ARCH_LIST="8.6;12.0"
-ENV MAX_JOBS=4
+ENV MAX_JOBS=2
 ENV VLLM_TARGET_DEVICE=cuda
 
-# Free up space: base image is ~15GB, GitHub Actions has limited disk
-# Must free enough for PyTorch upgrade (~5GB) + vLLM build + triton clone
-# Aggressive cleanup: remove NGC extras we don't need (saves ~6GB)
-RUN rm -rf /opt/nvidia/nsight-systems* /opt/nvidia/nsight-compute* \
-    /opt/nvidia/entitlement* \
-    /usr/local/cuda/samples /usr/local/cuda/extras/CUPTI/samples \
-    /usr/local/cuda/compute-sanitizer \
-    /usr/local/lib/python3.12/dist-packages/torch/test/ \
-    /usr/local/lib/python3.12/dist-packages/tensorrt* \
-    /usr/local/lib/python3.12/dist-packages/nvidia_dali* \
-    /usr/local/lib/python3.12/dist-packages/lightning_thunder* \
-    /usr/local/lib/python3.12/dist-packages/nvfuser* \
-    /usr/local/lib/python3.12/dist-packages/torchvision* \
-    /usr/local/lib/python3.12/dist-packages/torchaudio* \
-    /usr/share/doc /usr/share/man /var/cache/apt/* \
-    && pip cache purge 2>/dev/null || true \
-    && apt-get clean 2>/dev/null || true \
-    && find /usr/local/lib/python3.12/dist-packages/ -name '*.pyc' -delete 2>/dev/null || true \
-    && find /usr/local/lib/python3.12/dist-packages/ -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
-
-# Upgrade PyTorch to nightly cu128 (base image's 2.6 lacks Blackwell FP8/MXFP4 types)
-# vLLM v0.15.1 requires at::ScalarType::Float8_e8m0fnu (added in PyTorch 2.7+)
+# Install PyTorch nightly cu128 (need 2.7+ for Float8_e8m0fnu / MXFP4 support)
 # GPT-OSS-20B uses native MXFP4 weights, so FP8/FP4 quantization kernels are required
-# --force-reinstall: NGC's torch 2.6.0a0 satisfies pip's check, so without --force it's a no-op
-RUN pip install --no-cache-dir --force-reinstall --pre torch --index-url https://download.pytorch.org/whl/nightly/cu128
+RUN pip install --no-cache-dir --break-system-packages \
+    --pre torch --index-url https://download.pytorch.org/whl/nightly/cu128
 
-# Upgrade setuptools (base image's version doesn't support PEP 639 license format)
-# and install minimal build tools (NOT requirements/build.txt which
-# re-downloads torch + all CUDA libs already in the base image)
-# Pin setuptools<82 (torch 2.12 nightly requires it) and packaging<=24.2 (nvidia-dali compat)
-RUN pip install --no-cache-dir "setuptools>=75.0,<82" "packaging>=24.2,<=24.2" setuptools_scm cmake ninja wheel
+# Install build tools
+RUN pip install --no-cache-dir --break-system-packages \
+    "setuptools>=75.0,<82" "packaging==24.2" setuptools_scm cmake ninja wheel
 
-# Build vLLM v0.15.1 from source using existing PyTorch + CUDA 12.8
-# --no-build-isolation: use base image's torch instead of downloading a new one
-# Pre-clone triton with --depth 1 to avoid disk space exhaustion (full clone is 460MB+)
-# Then inject cmake variable via sed (pip -C flag doesn't work with setuptools)
+# Build vLLM v0.15.1 from source
+# Pre-clone triton with --depth 1 to save disk (full clone is 460MB+)
+# Inject cmake variable via sed (pip -C flag doesn't work with setuptools)
 RUN git clone --depth 1 https://github.com/triton-lang/triton.git /tmp/triton && \
     git clone --depth 1 --branch v0.15.1 https://github.com/vllm-project/vllm.git /tmp/vllm && \
     cd /tmp/vllm && \
     sed -i '1i set(FETCHCONTENT_SOURCE_DIR_TRITON_KERNELS "/tmp/triton" CACHE PATH "" FORCE)' \
         cmake/external_projects/triton_kernels.cmake && \
-    pip install --no-cache-dir --no-build-isolation . && \
+    pip install --no-cache-dir --break-system-packages --no-build-isolation . && \
     cd / && rm -rf /tmp/vllm /tmp/triton
 
 # Install RunPod and other dependencies
-RUN pip install --no-cache-dir \
+RUN pip install --no-cache-dir --break-system-packages \
     "runpod>=1.8,<2.0" \
     pydantic \
     pydantic-settings
@@ -72,9 +57,6 @@ ENV MODEL_NAME=$MODEL_NAME \
     HUGGINGFACE_HUB_CACHE="${BASE_PATH}/huggingface-cache/hub" \
     HF_HOME="${BASE_PATH}/huggingface-cache/hub" \
     PYTHONPATH="/" \
-    RAY_metrics_report_interval_ms=0 \
-    RAY_DEDUP_LOGS=0 \
-    RAY_DISABLE_DOCKER_CPU_WARNING=1 \
     ENFORCE_EAGER=true \
     TOKENIZERS_PARALLELISM=false \
     OMP_NUM_THREADS=4 \
@@ -85,9 +67,6 @@ ENV MODEL_NAME=$MODEL_NAME \
 
 # Copy handler code
 COPY src /src
-
-# Override the base image's entrypoint
-ENTRYPOINT []
 
 # Start the handler (raise thread limit to prevent thread exhaustion)
 CMD ["bash", "-c", "ulimit -u 65535 2>/dev/null; exec python3 /src/handler.py"]
