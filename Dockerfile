@@ -13,31 +13,36 @@ ENV MAX_JOBS=4
 ENV VLLM_TARGET_DEVICE=cuda
 
 # Free up space: base image is ~15GB, GitHub Actions has limited disk
-# Must free enough for vLLM build + triton clone (~500MB) + build artifacts
+# Must free enough for PyTorch upgrade (~5GB) + vLLM build + triton clone
+# Aggressive cleanup: remove NGC extras we don't need (saves ~6GB)
 RUN rm -rf /opt/nvidia/nsight-systems* /opt/nvidia/nsight-compute* \
     /opt/nvidia/entitlement* \
     /usr/local/cuda/samples /usr/local/cuda/extras/CUPTI/samples \
     /usr/local/cuda/compute-sanitizer \
     /usr/local/lib/python3.12/dist-packages/torch/test/ \
     /usr/local/lib/python3.12/dist-packages/tensorrt* \
+    /usr/local/lib/python3.12/dist-packages/nvidia_dali* \
+    /usr/local/lib/python3.12/dist-packages/lightning_thunder* \
+    /usr/local/lib/python3.12/dist-packages/nvfuser* \
+    /usr/local/lib/python3.12/dist-packages/torchvision* \
+    /usr/local/lib/python3.12/dist-packages/torchaudio* \
     /usr/share/doc /usr/share/man /var/cache/apt/* \
     && pip cache purge 2>/dev/null || true \
     && apt-get clean 2>/dev/null || true \
     && find /usr/local/lib/python3.12/dist-packages/ -name '*.pyc' -delete 2>/dev/null || true \
     && find /usr/local/lib/python3.12/dist-packages/ -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
 
-# Upgrade PyTorch to nightly cu128 (base image's 2.6 lacks Blackwell FP8 types)
+# Upgrade PyTorch to nightly cu128 (base image's 2.6 lacks Blackwell FP8/MXFP4 types)
 # vLLM v0.15.1 requires at::ScalarType::Float8_e8m0fnu (added in PyTorch 2.7+)
+# GPT-OSS-20B uses native MXFP4 weights, so FP8/FP4 quantization kernels are required
 # --force-reinstall: NGC's torch 2.6.0a0 satisfies pip's check, so without --force it's a no-op
-# --no-deps: keep NGC's existing CUDA libs (nvidia-cublas, nccl, etc.) — saves ~4GB disk
-# nvidia-nvshmem-cu12: new dep in torch 2.12 not in NGC base (libnvshmem_host.so.3)
-RUN pip install --no-cache-dir --force-reinstall --no-deps --pre torch --index-url https://download.pytorch.org/whl/nightly/cu128 && \
-    pip install --no-cache-dir nvidia-nvshmem-cu12
+RUN pip install --no-cache-dir --force-reinstall --pre torch --index-url https://download.pytorch.org/whl/nightly/cu128
 
 # Upgrade setuptools (base image's version doesn't support PEP 639 license format)
 # and install minimal build tools (NOT requirements/build.txt which
 # re-downloads torch + all CUDA libs already in the base image)
-RUN pip install --no-cache-dir "setuptools>=75.0" "packaging>=24.2" setuptools_scm cmake ninja wheel
+# Pin setuptools<82 (torch 2.12 nightly requires it) and packaging<=24.2 (nvidia-dali compat)
+RUN pip install --no-cache-dir "setuptools>=75.0,<82" "packaging>=24.2,<=24.2" setuptools_scm cmake ninja wheel
 
 # Build vLLM v0.15.1 from source using existing PyTorch + CUDA 12.8
 # --no-build-isolation: use base image's torch instead of downloading a new one
