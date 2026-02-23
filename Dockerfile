@@ -27,8 +27,9 @@ RUN rm -rf /opt/nvidia/nsight-systems* /opt/nvidia/nsight-compute* \
 
 # Upgrade PyTorch to nightly cu128 (base image's 2.6 lacks Blackwell FP8 types)
 # vLLM v0.15.1 requires at::ScalarType::Float8_e8m0fnu (added in PyTorch 2.7+)
-# Stable cu128 index only has 2.6 — nightly has 2.9+ with Blackwell support
-RUN pip install --no-cache-dir --pre torch --index-url https://download.pytorch.org/whl/nightly/cu128
+# --force-reinstall required: NGC's torch 2.6.0a0+df5bbc0 has pre-release tag
+# that satisfies pip's version check, so without --force it's a no-op
+RUN pip install --no-cache-dir --force-reinstall --pre torch --index-url https://download.pytorch.org/whl/nightly/cu128
 
 # Upgrade setuptools (base image's version doesn't support PEP 639 license format)
 # and install minimal build tools (NOT requirements/build.txt which
