@@ -6,9 +6,10 @@
 FROM nvcr.io/nvidia/pytorch:25.02-py3
 
 # Build settings for vLLM source compilation
-# Include Ampere (8.0, 8.6, 8.9), Hopper (9.0), and Blackwell (12.0 = sm_120 = RTX 5090)
-ENV TORCH_CUDA_ARCH_LIST="8.0;8.6;8.9;9.0;12.0"
-ENV MAX_JOBS=2
+# A40 (sm_86) + RTX 5090 (sm_120) only — add more archs if deploying on other GPUs
+# Each arch adds ~10 min compile time, so keep this minimal
+ENV TORCH_CUDA_ARCH_LIST="8.6;12.0"
+ENV MAX_JOBS=4
 ENV VLLM_TARGET_DEVICE=cuda
 
 # Free up space: base image is ~15GB, GitHub Actions has limited disk
