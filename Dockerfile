@@ -1,6 +1,6 @@
 # Custom RunPod Serverless Worker for GPT-OSS-20B
-# Clean build: minimal CUDA base + PyTorch nightly + vLLM from source
-# No NGC bloat — just what we need for CUDA 12.8 + RTX 5090 (sm_120)
+# Build from source for CUDA 12.8 + RTX 5090 (sm_120)
+# Build locally: docker build -t worker-vllm-gptoss .
 
 FROM nvidia/cuda:12.8.1-devel-ubuntu24.04
 
@@ -14,13 +14,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Build settings for vLLM source compilation
-# A40 (sm_86) + RTX 5090 (sm_120) only — add more archs if deploying on other GPUs
+# A40 (sm_86) + RTX 5090 (sm_120) only
 ENV TORCH_CUDA_ARCH_LIST="8.6;12.0"
-ENV MAX_JOBS=2
+ENV MAX_JOBS=8
 ENV VLLM_TARGET_DEVICE=cuda
 
 # Install PyTorch nightly cu128 (need 2.7+ for Float8_e8m0fnu / MXFP4 support)
-# GPT-OSS-20B uses native MXFP4 weights, so FP8/FP4 quantization kernels are required
 RUN pip install --no-cache-dir --break-system-packages \
     --pre torch --index-url https://download.pytorch.org/whl/nightly/cu128
 
